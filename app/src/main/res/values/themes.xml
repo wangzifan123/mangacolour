@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.MangaColor" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <item name="colorPrimary">#FF6B5B95</item>
+        <item name="colorPrimaryDark">#FF4A3D6B</item>
+        <item name="colorAccent">#FFFF8C42</item>
+    </style>
+</resources>
