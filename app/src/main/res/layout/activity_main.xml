@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/hint_api"
+            android:textStyle="bold" />
+
+        <EditText
+            android:id="@+id/etApi"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="textUri"
+            android:textSize="14sp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textSize="12sp"
+            android:textColor="#888888"
+            android:text="提示：先打开 local-dream 并加载一个模型，否则连不上。PC 端调试请先 adb forward tcp:8081 tcp:8081" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/btnPick"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:text="@string/btn_pick" />
+
+            <Button
+                android:id="@+id/btnStart"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:text="@string/btn_start" />
+
+            <Button
+                android:id="@+id/btnSave"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:text="@string/btn_save" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/tvStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:textSize="13sp"
+            android:text="就绪" />
+
+        <ProgressBar
+            android:id="@+id/progress"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp" />
+
+        <ImageView
+            android:id="@+id/ivPreview"
+            android:layout_width="match_parent"
+            android:layout_height="360dp"
+            android:layout_marginTop="8dp"
+            android:adjustViewBounds="true"
+            android:background="#22000000"
+            android:contentDescription="preview"
+            android:scaleType="fitCenter" />
+
+        <!-- 参数区 -->
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:layout_marginTop="12dp" android:textStyle="bold" android:text="参数" />
+
+        <TextView android:id="@+id/tvDenoise" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:layout_marginTop="8dp" android:textSize="13sp" />
+        <SeekBar android:id="@+id/sbDenoise" android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+        <TextView android:id="@+id/tvTile" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:textSize="13sp" />
+        <SeekBar android:id="@+id/sbTile" android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+        <TextView android:id="@+id/tvOverlap" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:textSize="13sp" />
+        <SeekBar android:id="@+id/sbOverlap" android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+        <TextView android:id="@+id/tvSteps" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:textSize="13sp" />
+        <SeekBar android:id="@+id/sbSteps" android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+        <TextView android:id="@+id/tvCfg" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:textSize="13sp" />
+        <SeekBar android:id="@+id/sbCfg" android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+        <TextView android:id="@+id/tvLine" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:textSize="13sp" />
+        <SeekBar android:id="@+id/sbLine" android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+        <TextView android:id="@+id/tvThreshold" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:textSize="13sp" />
+        <SeekBar android:id="@+id/sbThreshold" android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+    </LinearLayout>
+</ScrollView>
