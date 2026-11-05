@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 简单的画笔+调色盘图形，纯矢量，避免依赖 PNG -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- 纸张 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M30,24h48v60h-48z" />
+
+    <!-- 彩色笔触 1 -->
+    <path
+        android:fillColor="#FF8C42"
+        android:pathData="M36,36h36v6h-36z" />
+
+    <!-- 彩色笔触 2 -->
+    <path
+        android:fillColor="#4ECDC4"
+        android:pathData="M36,48h26v6h-26z" />
+
+    <!-- 彩色笔触 3 -->
+    <path
+        android:fillColor="#FF6B6B"
+        android:pathData="M36,60h32v6h-32z" />
+
+    <!-- 彩色笔触 4 -->
+    <path
+        android:fillColor="#FFD93D"
+        android:pathData="M36,72h20v6h-20z" />
+</vector>
