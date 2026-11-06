@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">漫画上色</string>
-    <string name="btn_pick">选择漫画图</string>
+    <string name="btn_pick">导入</string>
     <string name="btn_start">开始上色</string>
-    <string name="btn_save">保存结果</string>
+    <string name="btn_stop">停止</string>
+    <string name="btn_save">保存本页</string>
     <string name="hint_api">local-dream 地址</string>
     <string name="label_denoise">上色强度</string>
     <string name="label_tile">切块尺寸</string>
