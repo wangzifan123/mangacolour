@@ -13,4 +13,6 @@
     <string name="label_cfg">CFG</string>
     <string name="label_line">线条回贴</string>
     <string name="label_threshold">网点保护</string>
+    <string name="title_gan">GAN 上色（涂色）</string>
+    <string name="btn_gan_entry">GAN 涂色路线</string>
 </resources>
