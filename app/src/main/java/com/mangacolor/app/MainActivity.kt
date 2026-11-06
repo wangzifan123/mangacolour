@@ -106,6 +106,11 @@ class MainActivity : AppCompatActivity() {
         btnStop.isEnabled = false
         progress.visibility = View.GONE
         updateQueueLabel()
+
+        // GAN 上色路线入口（独立界面，不影响本页逻辑）
+        findViewById<Button>(R.id.btnGanEntry).setOnClickListener {
+            startActivity(Intent(this, GanActivity::class.java))
+        }
     }
 
     // ---- 参数控件 --------------------------------------------------------
