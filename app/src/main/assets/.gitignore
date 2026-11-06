@@ -1,0 +1,8 @@
+# 58.8MB 的 ONNX 模型不进 git（GitHub 单文件 >50MB 会警告，>100MB 直接拒收）。
+#
+# 获取方式（任选其一）：
+#   1) ./gradlew downloadGanModel -PganModelUrl=<模型下载地址>
+#   2) 手动拷贝 manga-colorize-fp16.onnx 到本目录
+#
+# 文件名必须是 manga-colorize-fp16.onnx，对应 GanColorizer.DEFAULT_MODEL_ASSET
+*.onnx
