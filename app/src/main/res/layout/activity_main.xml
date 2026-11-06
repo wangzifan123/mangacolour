@@ -78,6 +78,14 @@
             android:textStyle="bold"
             android:text="未载入" />
 
+        <!-- GAN 路线入口：只做跳转，不影响本页任何逻辑 -->
+        <Button
+            android:id="@+id/btnGanEntry"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="@string/btn_gan_entry" />
+
         <TextView
             android:id="@+id/tvStatus"
             android:layout_width="match_parent"
