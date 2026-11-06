@@ -67,12 +67,20 @@ def main() -> int:
         all_ok &= check_traps(f.name, src)
 
     print("\n== 资源引用交叉校验 ==")
-    layout = (ROOT / "app/src/main/res/layout/activity_main.xml").read_text(encoding="utf-8")
-    ids = set(re.findall(r'android:id="@\+id/(\w+)"', layout))
+    # 扫描全部布局（多 Activity 工程：activity_main / activity_gan ...），取 id 并集
+    layout_dir = ROOT / "app/src/main/res/layout"
+    layouts = sorted(layout_dir.glob("*.xml"))
+    if not layouts:
+        print("  ✗ 没找到任何布局文件")
+        return 1
+    ids = set()
+    for lf in layouts:
+        ids |= set(re.findall(r'android:id="@\+id/(\w+)"', lf.read_text(encoding="utf-8")))
     code = "\n".join(f.read_text(encoding="utf-8") for f in files)
     used = set(re.findall(r'R\.id\.(\w+)', code))
     missing = used - ids
-    print(f"  布局定义 {len(ids)} 个 id，代码使用 {len(used)} 个")
+    print(f"  布局 {len(layouts)} 个（{', '.join(l.name for l in layouts)}），"
+          f"定义 {len(ids)} 个 id，代码使用 {len(used)} 个")
     if missing:
         print(f"  ✗ 代码引用了不存在的 id: {missing}")
         all_ok = False
