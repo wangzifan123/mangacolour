@@ -14,11 +14,10 @@ android {
         versionCode = 1
         versionName = "1.0"
 
-        // GAN 模型是 fp16 的 ONNX，约 58.8MB。如果 NDK abiFilters 未来收窄，
-        // 记得这里只保留真实用到的 ABI，否则 APK 会白白多出几十 MB。
-        ndk {
-            abiFilters += listOf("arm64-v8a", "armeabi-v7a")
-        }
+        // 这里刻意**不设** abiFilters。
+        // onnxruntime-android 的 AAR 自带 arm64-v8a / armeabi-v7a / x86_64 三套 so，
+        // 收窄能省 APK 体积，但会让 x86_64 模拟器起不来，联调时很麻烦。
+        // 等真机验证完、要发版时再按需加。
     }
 
     buildTypes {
@@ -73,38 +72,16 @@ dependencies {
 /**
  * 模型分发：58.8MB 的 ONNX 不进 git（见 app/src/main/assets/.gitignore）。
  *
- * 本地/CI 构建前把模型放到 app/src/main/assets/ 即可：
- *   ./gradlew downloadGanModel -PganModelUrl=https://<你的模型地址>/manga-colorize-fp16.onnx
- * 或者手动拷贝文件过去。模型缺失时 CI 仍能编译通过（APK 里没有模型，
- * 运行到 GanColorizer.init 时会给出明确报错）。
+ * 获取方式：
+ *   · CI：由 .github/workflows/build.yml 的 curl 步骤下载到 assets/（带重试 + SHA256 校验）
+ *   · 本地：手动把 manga-colorize-fp16.onnx 拷到 app/src/main/assets/
+ *
+ * 文件名必须是 manga-colorize-fp16.onnx，对应 GanColorizer.DEFAULT_MODEL_ASSET。
+ *
+ * 注：此处原有 downloadGanModel 任务，因 Kotlin DSL 中 `java` 被 Gradle 的 java 扩展
+ * 遮蔽、`java.net.URL` 无法解析而编译失败；且 CI 用 curl 更可控（有重试与校验），
+ * 故移除此任务。
  */
-tasks.register("downloadGanModel") {
-    group = "gan"
-    description = "下载 GAN 上色模型到 app/src/main/assets/（需 -PganModelUrl=...）"
-
-    val assetsDir = layout.projectDirectory.dir("src/main/assets")
-    val targetFile = assetsDir.file("manga-colorize-fp16.onnx")
-    val sourceUrl = providers.gradleProperty("ganModelUrl").orNull
-    val expected = 58L * 1024L * 1024L
-
-    doLast {
-        val out = targetFile.asFile
-        if (out.isFile && out.length() >= expected) {
-            logger.lifecycle("[gan] 模型已存在，跳过下载：${out.absolutePath} (${out.length() / 1024 / 1024} MB)")
-            return@doLast
-        }
-        if (sourceUrl.isNullOrBlank()) {
-            logger.warn("[gan] 未提供 -PganModelUrl，跳过。请手动把 manga-colorize-fp16.onnx 放到 ${assetsDir.asFile.absolutePath}")
-            return@doLast
-        }
-        out.parentFile.mkdirs()
-        logger.lifecycle("[gan] 下载模型 -> ${out.absolutePath}")
-        java.net.URI(sourceUrl).toURL().openStream().use { input ->
-            out.outputStream().use { output -> input.copyTo(output) }
-        }
-        logger.lifecycle("[gan] 完成：${out.length() / 1024 / 1024} MB")
-    }
-}
 
 // 打包前提醒模型缺失（不 fail，保证没有模型的 PR 也能跑 CI 编译）
 tasks.matching { it.name.startsWith("merge") && it.name.endsWith("Assets") }.configureEach {
