@@ -1,0 +1,231 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  GAN 上色路线界面。
+  与 activity_main.xml（SD 路线）完全独立，互不影响。
+  布局要点：画布占满中间剩余空间，所有控制条固定在底部，保证涂色时手指不被控件挡住。
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="10dp">
+
+    <!-- ============ 顶部：标题 + 导入 ============ -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/tvGanTitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="GAN 上色 · hint 涂色"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/btnGanPick"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="导入" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/tvGanQueue"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="未载入"
+        android:textSize="13sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/tvGanStatus"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="就绪"
+        android:textColor="#888888"
+        android:textSize="12sp" />
+
+    <!-- ============ 中间：涂色画布 ============ -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="6dp"
+        android:layout_weight="1"
+        android:background="#14000000">
+
+        <com.mangacolor.app.HintCanvas
+            android:id="@+id/hintCanvas"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <ProgressBar
+            android:id="@+id/progressGan"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_gravity="center"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/tvGanEmpty"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="点「导入」选择漫画图 / PDF / ZIP"
+            android:textColor="#777777"
+            android:textSize="13sp" />
+    </FrameLayout>
+
+    <!-- ============ 翻页 / 对比 ============ -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btnGanPrev"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minWidth="56dp"
+            android:text="◀" />
+
+        <TextView
+            android:id="@+id/tvGanPage"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="- / -"
+            android:textSize="13sp" />
+
+        <Button
+            android:id="@+id/btnGanNext"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minWidth="56dp"
+            android:text="▶" />
+
+        <Button
+            android:id="@+id/btnGanCompare"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:text="看结果" />
+    </LinearLayout>
+
+    <!-- ============ 颜色选择器：预设色板 + 自定义 ============ -->
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:scrollbars="none">
+
+        <LinearLayout
+            android:id="@+id/colorRow"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal" />
+    </ScrollView>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btnGanCustomColor"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="自定义颜色" />
+
+        <TextView
+            android:id="@+id/tvBrush"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_weight="1"
+            android:text="画笔 24"
+            android:textSize="12sp" />
+
+        <CheckBox
+            android:id="@+id/cbGanHint"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:checked="true"
+            android:text="启用 hint"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <SeekBar
+        android:id="@+id/sbBrush"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
+    <!-- ============ 涂色编辑动作 ============ -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btnGanUndo"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="撤销" />
+
+        <Button
+            android:id="@+id/btnGanClear"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:layout_weight="1"
+            android:text="清除涂色" />
+    </LinearLayout>
+
+    <!-- ============ 执行 ============ -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btnGanColorize"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="上色本页" />
+
+        <Button
+            android:id="@+id/btnGanBatch"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:layout_weight="1"
+            android:text="批量上色" />
+
+        <Button
+            android:id="@+id/btnGanStop"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:layout_weight="1"
+            android:text="停止" />
+
+        <Button
+            android:id="@+id/btnGanSave"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:layout_weight="1"
+            android:text="保存" />
+    </LinearLayout>
+
+</LinearLayout>
