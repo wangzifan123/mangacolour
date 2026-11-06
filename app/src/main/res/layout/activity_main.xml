@@ -29,7 +29,7 @@
             android:layout_marginTop="4dp"
             android:textSize="12sp"
             android:textColor="#888888"
-            android:text="提示：先打开 local-dream 并加载一个模型，否则连不上。PC 端调试请先 adb forward tcp:8081 tcp:8081" />
+            android:text="先打开 local-dream 并加载一个模型，否则连不上。PC 端调试请先 adb forward tcp:8081 tcp:8081" />
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -49,23 +49,40 @@
                 android:layout_width="0dp"
                 android:layout_weight="1"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
+                android:layout_marginStart="6dp"
                 android:text="@string/btn_start" />
+
+            <Button
+                android:id="@+id/btnStop"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:text="@string/btn_stop" />
 
             <Button
                 android:id="@+id/btnSave"
                 android:layout_width="0dp"
                 android:layout_weight="1"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
+                android:layout_marginStart="6dp"
                 android:text="@string/btn_save" />
         </LinearLayout>
+
+        <TextView
+            android:id="@+id/tvQueue"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:text="未载入" />
 
         <TextView
             android:id="@+id/tvStatus"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
+            android:layout_marginTop="2dp"
             android:textSize="13sp"
             android:text="就绪" />
 
@@ -79,16 +96,38 @@
         <ImageView
             android:id="@+id/ivPreview"
             android:layout_width="match_parent"
-            android:layout_height="360dp"
+            android:layout_height="320dp"
             android:layout_marginTop="8dp"
             android:adjustViewBounds="true"
             android:background="#22000000"
             android:contentDescription="preview"
             android:scaleType="fitCenter" />
 
-        <!-- 参数区 -->
-        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-            android:layout_marginTop="12dp" android:textStyle="bold" android:text="参数" />
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:textStyle="bold"
+            android:text="加速（可大幅缩短耗时）" />
+
+        <CheckBox
+            android:id="@+id/cbFast"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="快模式：8 步 / CFG 1（需 DMD2 或 LCM 模型）" />
+
+        <CheckBox
+            android:id="@+id/cbLimit"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="限制长边 1024（切块数约减 60%，最后放大回原尺寸）" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:textStyle="bold"
+            android:text="参数" />
 
         <TextView android:id="@+id/tvDenoise" android:layout_width="match_parent"
             android:layout_height="wrap_content" android:layout_marginTop="8dp" android:textSize="13sp" />
