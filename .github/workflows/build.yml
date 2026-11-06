@@ -87,10 +87,12 @@ jobs:
           APK=$(ls app/build/outputs/apk/debug/*.apk | head -1)
           echo "检查 $APK 是否包含 GAN 模型..."
           if unzip -l "$APK" | grep -q "${GAN_MODEL_NAME}"; then
-            echo "✅ APK 已包含 ${GAN_MODEL_NAME}"
+            echo "APK 已包含 ${GAN_MODEL_NAME}"
             unzip -l "$APK" | grep "${GAN_MODEL_NAME}"
+            echo "APK 大小: $(du -h "$APK" | cut -f1)"
           else
-            echo "⚠️ APK 不含 GAN 模型（构建仍算成功，但 App 内无法使用 GAN 上色）"
+            echo "APK 不含 GAN 模型，拒绝发布残废包"
+            exit 1
           fi
 
       - name: Upload APK
