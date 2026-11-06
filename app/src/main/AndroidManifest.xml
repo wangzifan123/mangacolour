@@ -22,6 +22,13 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- GAN 上色路线（hint 涂色）。与 MainActivity 的 SD 路线并列，互不影响。 -->
+        <activity
+            android:name=".GanActivity"
+            android:exported="false"
+            android:label="@string/title_gan"
+            android:configChanges="orientation|screenSize|keyboardHidden" />
     </application>
 
 </manifest>
