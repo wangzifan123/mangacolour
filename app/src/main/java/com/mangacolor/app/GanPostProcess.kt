@@ -3,7 +3,6 @@ package com.mangacolor.app
 import android.graphics.Bitmap
 import java.util.stream.IntStream
 import kotlin.math.max
-import kotlin.math.min
 
 /**
  * GanPostProcess — GAN 上色结果的纯 Kotlin 后处理管线。
@@ -156,7 +155,9 @@ object GanPostProcess {
                 val gy = 0.2126729f * lr + 0.7151522f * lg + 0.0721750f * lb
                 // 原图 L：只需 Y 一路，省掉 X/Z
                 val lSrc = 116f * fOf(gy) - 16f
-                gray?.set(i, (or * 0.299f + og * 0.587f + ob * 0.114f) * INV_255)
+                if (gray != null) {
+                    gray[i] = (or * 0.299f + og * 0.587f + ob * 0.114f) * INV_255
+                }
 
                 val c = cp[i]
                 val cr = LINEAR[(c shr 16) and 0xFF]
@@ -322,7 +323,12 @@ object GanPostProcess {
         return (alpha shl 24) or (to8(r) shl 16) or (to8(g) shl 8) or to8(b)
     }
 
-    /** 四舍五入到 0-255（round-half-up，与 Java/Kotlin 的 Math.round 一致）。 */
+    /**
+     * 四舍五入到 0-255。
+     *
+     * 与 Java 端 `to8` 逐字一致：先 +0.5 再截断。注意顺序——先加 0.5 再比较
+     * 255，可以保证 v=254.5 得到 255、v=254.4 得到 254，与 Math.round 同语义。
+     */
     private fun to8(v: Float): Int {
         val x = v + 0.5f
         return if (x <= 0f) 0 else if (x >= 255f) 255 else x.toInt()
@@ -436,13 +442,19 @@ object GanPostProcess {
     // ======================================================================
 
     /**
-     * (2r+1)^2 均值滤波，边界按复制处理。
+     * (2r+1)^2 均值滤波，边界按**复制边缘**处理（等价 OpenCV 的 BORDER_REPLICATE）。
+     *
+     * 实现方式：先把源平面按 edge 复制扩出 r 圈，再在扩边后的平面里滑动一个
+     * 完整的 (2r+1)^2 窗口。这样边缘像素的窗口与实心区一样是满窗，只是采样点被
+     * 钳到边界——与 Python 端 `np.pad(mode="edge")` 的语义严格一致。
+     *
+     * （若改用「窗口在边界处收缩、只求实际覆盖部分」的写法，边界会变成另一种
+     * 滤波器，实测两种语义在合成斜坡上差 27.9 级，因此必须选一种并两端对齐。）
      *
      * 积分图用 **Double** 累加：a/b 通道量级约 ±128，2.28 MP 的 Float 积分图会超出
-     * 2^24 精确整数范围，四点求差时出现灾难性抵消（实测 a/b 误差可达数级）。
-     * Double 与 Python 端的 float64 cumsum 完全同精度。
+     * 2^24 精确整数范围，四点求差时出现灾难性抵消。Double 与 Python 端 float64 同位。
      *
-     * 允许 [dst] 与 [src] 同一数组：积分图先整体建完再写 dst，不存在读写交叠。
+     * 允许 [dst] 与 [src] 是同一个数组：积分图先整体建完再写 dst，无读写交叠。
      */
     private fun boxFilter(
         src: FloatArray, w: Int, h: Int, radius: Int, dst: FloatArray,
@@ -452,30 +464,35 @@ object GanPostProcess {
             src.copyInto(dst)
             return
         }
-        val iw = w + 1
-        // 前缀和只写「第 1..h 行、第 1..w 列」，第 0 行与第 0 列永远不被写到，
+        val r = radius
+        val pw = w + 2 * r
+        val ph = h + 2 * r
+        val iw = pw + 1
+        // 前缀和只写「第 1..ph 行、第 1..pw 列」，第 0 行与第 0 列永远不被写到，
         // 因此 integral 只需在分配时清零一次，之后复用天然安全。
-        for (y in 0 until h) {
+        for (py in 0 until ph) {
+            // 复制边缘：越界行钳到首/末行
+            val sy = if (py < r) 0 else if (py - r >= h) h - 1 else py - r
             var rowSum = 0.0
-            val srcOff = y * w
-            val upOff = y * iw
+            val srcOff = sy * w
+            val upOff = py * iw
             val curOff = upOff + iw
-            for (x in 0 until w) {
-                rowSum += src[srcOff + x]
-                integral[curOff + x + 1] = integral[upOff + x + 1] + rowSum
+            for (px in 0 until pw) {
+                val sx = if (px < r) 0 else if (px - r >= w) w - 1 else px - r
+                rowSum += src[srcOff + sx]
+                integral[curOff + px + 1] = integral[upOff + px + 1] + rowSum
             }
         }
-        val k = 2 * radius + 1
+        val k = 2 * r + 1
         val inv = 1.0 / (k * k.toDouble())
         for (y in 0 until h) {
-            val top = max(0, y - radius) * iw
-            val bot = (min(h - 1, y + radius) + 1) * iw
+            val top = y * iw            // 扩边后窗口左上角就是 (y, x)
+            val bot = (y + k) * iw
             val dstOff = y * w
             for (x in 0 until w) {
-                val x0 = max(0, x - radius)
-                val x1 = min(w - 1, x + radius) + 1
+                val x1 = x + k
                 val sum = integral[bot + x1] - integral[top + x1] -
-                    integral[bot + x0] + integral[top + x0]
+                    integral[bot + x] + integral[top + x]
                 dst[dstOff + x] = (sum * inv).toFloat()
             }
         }
@@ -540,8 +557,8 @@ object GanPostProcess {
         val t1 = FloatArray(n)
         val t2 = FloatArray(n)
         val t3 = FloatArray(n)
-        val integral = DoubleArray((w + 1) * (h + 1))
-        java.util.Arrays.fill(integral, 0.0)
+        // 扩边后的平面是 (w+2r) x (h+2r)，积分图各边再多 1 行/列
+        val integral = DoubleArray((w + 2 * radius + 1) * (h + 2 * radius + 1))
         guidedFilterOne(guide, aIn, w, h, radius, eps, aOut, t1, t2, t3, integral)
         guidedFilterOne(guide, bIn, w, h, radius, eps, bOut, t1, t2, t3, integral)
     }
