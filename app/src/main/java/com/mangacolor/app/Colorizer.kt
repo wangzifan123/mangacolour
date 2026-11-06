@@ -14,12 +14,19 @@ import kotlin.math.min
 object Colorizer {
 
     const val DEFAULT_PROMPT =
-        "full color, flat colors, cel shading, anime coloring, " +
-            "vivid palette, clean colors, masterpiece"
+        "full color, anime coloring, cel shading, flat colors, " +
+            "vivid saturated colors, colorful"
 
     const val DEFAULT_NEGATIVE =
-        "monochrome, grayscale, black and white, sketch, lineart, " +
-            "low quality, blurry, extra lines"
+        "monochrome, grayscale, black and white, desaturated, " +
+            "muted colors, sketch, lineart, low quality, blurry"
+
+    /**
+     * 官方推荐的 img2img denoise（0.75–0.85）。
+     * 见 https://ld-guide.chino.icu/models/parameters
+     * 之前用 0.45 属于 "small fixes, light restyling"，根本不够铺色。
+     */
+    const val DEFAULT_DENOISE = 0.80f
 
     /** 在一条轴上算出所有块起点，保证完整覆盖且不越界。 */
     fun axisPositions(total: Int, tile: Int, overlap: Int): List<Int> {
@@ -85,8 +92,8 @@ object Colorizer {
         client: LocalDreamClient,
         page: Bitmap,
         tile: Int = 512,
-        overlap: Int = 96,
-        denoise: Float = 0.45f,
+        overlap: Int = 48,
+        denoise: Float = DEFAULT_DENOISE,
         prompt: String = DEFAULT_PROMPT,
         negative: String = DEFAULT_NEGATIVE,
         steps: Int = 20,
