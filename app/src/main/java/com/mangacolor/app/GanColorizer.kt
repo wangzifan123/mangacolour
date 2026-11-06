@@ -96,16 +96,15 @@ object GanColorizer {
     fun init(context: Context, modelAssetPath: String = DEFAULT_MODEL_ASSET, shortSide: Int = DEFAULT_SIZE) {
         if (isReady) return
         val appContext = context.applicationContext ?: context
-        val modelFile = materializeAsset(appContext, modelAssetPath)
-        createSession(modelFile)
+        val env = OrtEnvironment.getEnvironment()
+        createSessionFromAsset(env, appContext, modelAssetPath, buildOptions())
         inputShortSide = shortSide
-        Log.i(TAG, "模型就绪：${modelFile.absolutePath} (${modelFile.length() / 1024 / 1024} MB)")
+        Log.i(TAG, "模型就绪：$modelAssetPath（短边基准 $shortSide）")
     }
 
     /**
      * 从任意文件路径加载模型。
      * 用于「模型不进 assets、改为首次启动下载到私有目录」的分发方案。
-     * 校验通过后可以直接 [initFromFile]。
      */
     fun initFromFile(modelFile: File, shortSide: Int = DEFAULT_SIZE) {
         if (isReady) return
@@ -113,11 +112,17 @@ object GanColorizer {
         require(modelFile.length() >= MIN_MODEL_BYTES) {
             "模型文件疑似不完整（${modelFile.length()} 字节），期望 >= $MIN_MODEL_BYTES"
         }
-        createSession(modelFile)
+        createSession(OrtEnvironment.getEnvironment(), modelFile, buildOptions())
         inputShortSide = shortSide
     }
 
-    /** 释放 session 与后台线程。Activity onDestroy 时调用。 */
+    /**
+     * 释放 session。Activity onDestroy 时调用。
+     *
+     * 注意：OrtEnvironment 是 JVM 单例（ORT 1.11 起 close() 是 no-op，由 JVM shutdown hook 关），
+     * 所以这里只关 session，不动 env。后台线程池也保留复用 —— 反复 init/release
+     * （比如横竖屏切换）如果每次都重建线程池，反而容易把线程数堆上去。
+     */
     fun release() {
         synchronized(stateLock) {
             ortSession?.close()
@@ -475,14 +480,22 @@ object GanColorizer {
         val n = plan.fullW * plan.fullH
         val out = FloatArray(3 * n)
 
-        OnnxTensor.createTensor(env, FloatBuffer.wrap(input), shape).use { tensor ->
-            session.run(mapOf(inputTensorName to tensor)).use { result ->
+        // 注意：OnnxTensor / OrtSession.Result 只实现 java.lang.AutoCloseable，
+        // 不是 java.io.Closeable，所以不能用 Kotlin 的 `.use {}`（那要求 Closeable），
+        // 必须手写 try/finally，否则编译不过。
+        val tensor = OnnxTensor.createTensor(env, FloatBuffer.wrap(input), shape)
+        try {
+            val result = session.run(mapOf(inputTensorName to tensor))
+            try {
                 val outTensor = result[0] as OnnxTensor
-                // getFloatBuffer() 返回的是 [1,3,H,W] 的连续副本，按 NCHW 平铺顺序读出。
                 val buffer = outTensor.floatBuffer
                 buffer.rewind()
                 buffer.get(out)
+            } finally {
+                result.close()
             }
+        } finally {
+            tensor.close()
         }
         return out
     }
@@ -530,7 +543,40 @@ object GanColorizer {
     // ------------------------------------------------------------------ 模型装载
 
     /**
-     * 把 assets 里的模型拷到私有目录再用路径建 session。
+     * 从 assets 装载模型：先把模型落到私有目录，再用文件路径建 session。
+     *
+     * 为什么不用「assets + ByteBuffer 零拷贝」的写法：
+     * 那条路依赖 `noCompress += "onnx"` 生效后 `assets.openFd()` 可用，
+     * 而且 `FileInputStream(fd).channel` 一关就会连带关掉底层 fd，
+     * 不同 ROM / AGP 版本上行为不一致（映射区可能失效）。
+     * 模型是 58.8MB 的一次性文件，拷贝耗时 0.3~1 秒，完全可接受，
+     * 换来的是各机型都能稳定加载。
+     *
+     * 私有目录里的副本会保留，第二次启动直接复用，不重复拷贝。
+     */
+    private fun createSessionFromAsset(
+        env: OrtEnvironment,
+        context: Context,
+        assetPath: String,
+        options: OrtSession.SessionOptions,
+    ) {
+        synchronized(stateLock) {
+            if (ortSession != null) return@synchronized
+
+            // 先拷贝到私有目录：这是最稳的路径，APK 里 assets 的 openFd()
+            // 只有在 noCompress 生效时才可用，而且不同 ROM 的实现在映射零长度 /
+            // 非对齐文件时偶尔会出问题。58.8MB 的拷贝大约 0.3~1 秒，一次性的。
+            val modelFile = try {
+                materializeAsset(context, assetPath)
+            } catch (e: Throwable) {
+                throw IllegalStateException("加载模型失败：$assetPath", e)
+            }
+            createSession(env, modelFile, options)
+        }
+    }
+
+    /**
+     * 把 assets 里的模型拷到私有目录再用路径建 session（回退路径）。
      * 不直接读 byte[] 是因为 58.8MB 一次性进 Java 堆容易被低端机 OOM。
      */
     private fun materializeAsset(context: Context, assetPath: String): File {
@@ -570,18 +616,26 @@ object GanColorizer {
         return target
     }
 
-    private fun createSession(modelFile: File) {
+    private fun buildOptions(): OrtSession.SessionOptions {
+        val options = OrtSession.SessionOptions()
+        val threads = workerThreads()
+        options.setIntraOpNumThreads(threads)
+        options.setOptimizationLevel(OrtSession.SessionOptions.OptLevel.ALL_OPT)
+        return options
+    }
+
+    private fun createSession(
+        env: OrtEnvironment,
+        modelFile: File,
+        options: OrtSession.SessionOptions,
+    ) {
         synchronized(stateLock) {
             if (ortSession != null) return@synchronized
-            val env = OrtEnvironment.getEnvironment()
-            val options = OrtSession.SessionOptions()
-            options.setIntraOpNumThreads(workerThreads())
-            options.setOptimizationLevel(OrtSession.SessionOptions.OptLevel.ALL_OPT)
             val session = env.createSession(modelFile.absolutePath, options)
             inputTensorName = session.inputNames.firstOrNull() ?: "input"
             ortEnv = env
             ortSession = session
-            Log.i(TAG, "session 建立完成 input=$inputTensorName threads=${workerThreads()}")
+            Log.i(TAG, "session 建立完成（文件路径）input=$inputTensorName threads=${workerThreads()}")
         }
     }
 
