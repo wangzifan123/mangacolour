@@ -9,6 +9,12 @@ concurrency:
   group: build-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  # GAN 上色模型（58.8MB，MIT）。不进 git，构建时下载并校验 SHA256。
+  GAN_MODEL_URL: https://huggingface.co/Faridzar/manga-colorization-v2-onnx/resolve/main/manga-colorize-fp16.onnx
+  GAN_MODEL_SHA256: 39660d0047ea6f1a0ddee6aa89054997f95ea566f4d56ff762f66dbcf1a1a7ef
+  GAN_MODEL_NAME: manga-colorize-fp16.onnx
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -29,15 +35,44 @@ jobs:
           set -e
           SDK="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
           echo "SDK 路径: $SDK"
-          ls "$SDK" || true
           echo "ANDROID_HOME=$SDK" >> "$GITHUB_ENV"
           echo "ANDROID_SDK_ROOT=$SDK" >> "$GITHUB_ENV"
-          # 接受许可
           yes | "$SDK/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null 2>&1 || true
-          # 确保需要的组件存在
           "$SDK/cmdline-tools/latest/bin/sdkmanager" \
             "platform-tools" "platforms;android-34" "build-tools;34.0.0" || true
           ls "$SDK/platforms" || true
+
+      # 下载 GAN 模型到 assets。失败不阻断（APK 仍可编译，只是没有模型）
+      - name: Download GAN model
+        continue-on-error: true
+        run: |
+          set -e
+          TARGET="app/src/main/assets/${GAN_MODEL_NAME}"
+          mkdir -p "$(dirname "$TARGET")"
+          echo "下载 ${GAN_MODEL_NAME} ..."
+          for i in 1 2 3; do
+            if curl -fL --retry 3 --retry-delay 5 --connect-timeout 30 \
+                 -o "$TARGET" "$GAN_MODEL_URL"; then
+              break
+            fi
+            echo "第 $i 次下载失败，重试..."
+            sleep 5
+          done
+          if [ -f "$TARGET" ]; then
+            SIZE=$(stat -c%s "$TARGET")
+            echo "下载完成：$SIZE bytes"
+            echo "校验 SHA256 ..."
+            ACTUAL=$(sha256sum "$TARGET" | cut -d' ' -f1)
+            if [ "$ACTUAL" = "$GAN_MODEL_SHA256" ]; then
+              echo "✅ SHA256 校验通过"
+            else
+              echo "❌ SHA256 不匹配！期望 $GAN_MODEL_SHA256，实际 $ACTUAL"
+              rm -f "$TARGET"
+              exit 1
+            fi
+          else
+            echo "⚠️ 模型下载失败，本次 APK 将不含 GAN 模型"
+          fi
 
       - name: Set up Gradle 8.7
         uses: gradle/actions/setup-gradle@v3
@@ -46,6 +81,17 @@ jobs:
 
       - name: Build debug APK
         run: gradle assembleDebug --no-daemon --stacktrace
+
+      - name: Verify APK contains model
+        run: |
+          APK=$(ls app/build/outputs/apk/debug/*.apk | head -1)
+          echo "检查 $APK 是否包含 GAN 模型..."
+          if unzip -l "$APK" | grep -q "${GAN_MODEL_NAME}"; then
+            echo "✅ APK 已包含 ${GAN_MODEL_NAME}"
+            unzip -l "$APK" | grep "${GAN_MODEL_NAME}"
+          else
+            echo "⚠️ APK 不含 GAN 模型（构建仍算成功，但 App 内无法使用 GAN 上色）"
+          fi
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
