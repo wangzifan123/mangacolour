@@ -14,10 +14,20 @@ android {
         versionCode = 1
         versionName = "1.0"
 
-        // 这里刻意**不设** abiFilters。
-        // onnxruntime-android 的 AAR 自带 arm64-v8a / armeabi-v7a / x86_64 三套 so，
-        // 收窄能省 APK 体积，但会让 x86_64 模拟器起不来，联调时很麻烦。
-        // 等真机验证完、要发版时再按需加。
+        // 不设 abiFilters（保留全部 ABI，模拟器/真机都能装）。
+        // 但用 splits 按 ABI 分包，避免一个包里塞 4 套 .so 导致 133MB。
+        // 分包后每个 APK 只含一个 ABI，通用包仍保留。
+    }
+
+    // ABI 分包：每个 ABI 出一个独立 APK，体积可减一半以上。
+    // 用 universalApk = true 保留一个全 ABI 包（体积大但通用，适合直接分发）。
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("arm64-v8a", "armeabi-v7a", "x86_64")
+            isUniversalApk = true
+        }
     }
 
     buildTypes {
